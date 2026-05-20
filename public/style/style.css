@@ -1,0 +1,151 @@
+/* Reset e base */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+ 
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;                  /* Sem scroll — é um jogo */
+  background: #000;
+  font-family: 'Courier New', Courier, monospace;
+}
+ 
+/* ── Canvas WebGL ──────────────────────────────────────────── */
+#glCanvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  /* O canvas cobre toda a janela */
+}
+ 
+/* ── HUD (Heads-Up Display) ────────────────────────────────── */
+/*
+  O HUD usa position:fixed para sobrepor o canvas.
+  pointer-events:none garante que cliques passem pelo HUD para o canvas.
+*/
+#hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;             /* Não intercepta eventos do mouse */
+  color: #00ff88;                   /* Verde terminal clássico */
+  text-shadow: 0 0 8px #00ff8866;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+ 
+/* Título no canto superior esquerdo */
+#hud-title {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 0 16px #00ff88aa;
+  letter-spacing: 2px;
+}
+ 
+/* Painel de controles — canto inferior esquerdo */
+#hud-controls {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid #00ff8844;
+  border-radius: 4px;
+  padding: 12px 16px;
+  backdrop-filter: blur(4px);
+}
+ 
+.hud-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+ 
+.hud-label {
+  color: #00ff88;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid #00ff8833;
+  padding-bottom: 2px;
+}
+ 
+.hud-section span:not(.hud-label) {
+  color: #aaffcc;
+  font-size: 11px;
+}
+ 
+/* Status — canto superior direito */
+#hud-status {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid #00ff8844;
+  border-radius: 4px;
+  padding: 10px 14px;
+  backdrop-filter: blur(4px);
+}
+ 
+#hud-status span {
+  color: #aaffcc;
+  font-size: 12px;
+}
+ 
+#status-fps {
+  color: #ffdd00;
+  font-weight: bold;
+}
+ 
+/* Tela de carregamento — mostrada enquanto shaders compilam */
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #00ff88;
+  font-family: 'Courier New', monospace;
+  z-index: 100;
+  transition: opacity 0.5s ease;
+}
+ 
+#loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+ 
+#loading-bar-container {
+  width: 300px;
+  height: 4px;
+  background: #00ff8822;
+  border-radius: 2px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+ 
+#loading-bar {
+  height: 100%;
+  background: #00ff88;
+  width: 0%;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px #00ff88;
+}

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenWorld WebGL — Cidade Voadora</title>
+  <link rel="stylesheet" href="public/style/style.css" />
+ 
+  <!--
+    TWGL.js — "Tiny WebGL helper Library"
+    Abstrai a verbosidade do WebGL puro para:
+      - Criação de buffers (createBufferInfoFromArrays)
+      - Criação de programas de shader (createProgramInfo)
+      - Configuração de uniforms (setUniforms)
+    NÃO é uma engine — apenas utilitários sobre WebGL nativo.
+  -->
+  <script src="https://twgljs.org/dist/4.x/twgl-full.min.js"></script>
+</head>
+<body>
+ 
+  <!-- Canvas: superfície de renderização WebGL -->
+  <canvas id="glCanvas"></canvas>
+ 
+  <!-- HUD: Interface sobre o canvas -->
+  <div id="hud">
+    <div id="hud-title">🛸 OpenWorld WebGL</div>
+ 
+    <div id="hud-controls">
+      <div class="hud-section">
+        <span class="hud-label">MOVIMENTO</span>
+        <span>W/S — Frente / Trás</span>
+        <span>A/D — Girar</span>
+        <span>Q/E — Subir / Descer</span>
+      </div>
+      <div class="hud-section">
+        <span class="hud-label">CÂMERA</span>
+        <span>1 — Vista Superior</span>
+        <span>2 — Vista Cinemática</span>
+        <span>C — Alternar ângulo</span>
+      </div>
+      <div class="hud-section">
+        <span class="hud-label">OUTROS</span>
+        <span>L — Luz On/Off</span>
+        <span>M — Mute</span>
+      </div>
+    </div>
+ 
+    <div id="hud-status">
+      <span id="status-camera">📷 Câmera: Superior</span>
+      <span id="status-light">💡 Luz: ON</span>
+      <span id="status-fps">FPS: --</span>
+      <span id="status-pos">Pos: (0, 0, 0)</span>
+    </div>
+  </div>
+ 
+  <!-- Carregamento dos módulos em ordem de dependência -->
+  <!-- Utils: sem dependências externas -->
+  <script src="src/utils/constants.js"></script>
+  <script src="src/utils/math.js"></script>
+ 
+  <!-- Core: fundação do sistema -->
+  <script src="src/core/state.js"></script>
+  <script src="src/core/timing.js"></script>
+ 
+  <!-- Render: pipeline gráfico -->
+  <script src="src/render/shaders.js"></script>
+  <script src="src/render/material.js"></script>
+  <script src="src/render/textureLoader.js"></script>
+  <script src="src/render/lighting.js"></script>
+  <script src="src/render/camera.js"></script>
+  <script src="src/render/renderer.js"></script>
+ 
+  <!-- Systems: lógica de jogo -->
+  <script src="src/systems/input.js"></script>
+  <script src="src/systems/movementSystem.js"></script>
+  <script src="src/systems/cameraSystem.js"></script>
+ 
+  <!-- Entidades: objetos do mundo -->
+  <script src="src/entities/aircraft.js"></script>
+  <script src="src/entities/building.js"></script>
+  <script src="src/entities/tree.js"></script>
+ 
+  <!-- World: geração do cenário -->
+  <script src="src/world/terrain.js"></script>
+  <script src="src/world/cityGenerator.js"></script>
+ 
+  <!-- Audio: sistema de som -->
+  <script src="src/audio/soundManager.js"></script>
+ 
+  <!-- Core: orquestrador principal -->
+  <script src="src/core/game.js"></script>
+ 
+  <!-- Entry point -->
+  <script src="src/main.js"></script>
+ 
+</body>
+</html>
