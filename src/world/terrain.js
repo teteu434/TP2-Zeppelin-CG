@@ -1,65 +1,81 @@
 // ============================================================
-// src/world/terrain.js — Terreno
-// Responsabilidade: gerar o plano base e as ruas da cidade.
+// src/world/terrain.js — Terreno  (CORRIGIDO)
 // ============================================================
-
 const Terrain = (() => {
-
   let _groundBuf = null;
   let _roadBuf   = null;
   let _matGround = null;
   let _matRoad   = null;
 
-  // Plano simples (dois triângulos)
   function _buildPlane(gl, size, uvRepeat) {
     const h = size / 2;
     const r = uvRepeat;
 
+    //  ANTES (CW visto de cima → normal = -Y → culled):
+    //    -h,0,-h  h,0,-h  h,0,h
+    //    -h,0,-h  h,0,h  -h,0,h
+    //
+    //  DEPOIS (CCW visto de cima → normal = +Y → visível):
+    //    Basta trocar B↔C em cada triângulo.
+    //
+    //  Verificação tri-1: A=(-h,0,-h) B=(h,0,h) C=(h,0,-h)
+    //    edge1 = (2h,0,2h)  edge2 = (2h,0,0)
+    //    normal = edge1×edge2 = (0, +4h², 0)  ✓  aponta para cima
+
     const positions = new Float32Array([
-      -h,0,-h,  h,0,-h,  h,0, h,
-      -h,0,-h,  h,0, h, -h,0, h,
+      // Triângulo 1
+      -h, 0, -h,    h, 0,  h,    h, 0, -h,
+      // Triângulo 2
+      -h, 0, -h,   -h, 0,  h,    h, 0,  h,
     ]);
     const normals = new Float32Array([
       0,1,0, 0,1,0, 0,1,0,
       0,1,0, 0,1,0, 0,1,0,
     ]);
+    // Texcoords ajustadas ao novo winding
     const texcoords = new Float32Array([
-      0,0, r,0, r,r,
-      0,0, r,r, 0,r,
+      0,0,  r,r,  r,0,   // tri 1
+      0,0,  0,r,  r,r,   // tri 2
     ]);
 
     return twgl.createBufferInfoFromArrays(gl, {
       a_position: { numComponents: 3, data: positions },
-      a_normal:   { numComponents: 3, data: normals },
+      a_normal:   { numComponents: 3, data: normals   },
       a_texcoord: { numComponents: 2, data: texcoords },
     });
   }
 
-  // Rua: plano fino ao longo de um eixo
   function _buildRoadSegment(gl, length, width) {
     const hl = length / 2, hw = width / 2;
+
+    // Mesmo problema: winding CW → normal aponta para baixo → culled.
+    // Correção idêntica: trocar B↔C em cada triângulo.
+
     const positions = new Float32Array([
-      -hw, 0.01, -hl,   hw, 0.01, -hl,   hw, 0.01,  hl,
-      -hw, 0.01, -hl,   hw, 0.01,  hl,  -hw, 0.01,  hl,
+      // Triângulo 1
+      -hw, 0.01, -hl,    hw, 0.01,  hl,    hw, 0.01, -hl,
+      // Triângulo 2
+      -hw, 0.01, -hl,   -hw, 0.01,  hl,    hw, 0.01,  hl,
     ]);
     const normals = new Float32Array([
       0,1,0, 0,1,0, 0,1,0,
       0,1,0, 0,1,0, 0,1,0,
     ]);
     const texcoords = new Float32Array([
-      0,0, 1,0, 1,5,
-      0,0, 1,5, 0,5,
+      0,0,  1,5,  1,0,   // tri 1
+      0,0,  0,5,  1,5,   // tri 2
     ]);
+
     return twgl.createBufferInfoFromArrays(gl, {
       a_position: { numComponents: 3, data: positions },
-      a_normal:   { numComponents: 3, data: normals },
+      a_normal:   { numComponents: 3, data: normals   },
       a_texcoord: { numComponents: 2, data: texcoords },
     });
   }
 
   function init(gl, textures) {
-    const S = CONSTANTS.WORLD.SIZE;
-    _groundBuf = _buildPlane(gl, S, S / 8);         // UV repeat para textura de grama
+    const S    = CONSTANTS.WORLD.SIZE;
+    _groundBuf = _buildPlane(gl, S, S / 8);
     _roadBuf   = _buildRoadSegment(gl, S, CONSTANTS.WORLD.ROAD_WIDTH);
 
     _matGround = {
@@ -68,24 +84,21 @@ const Terrain = (() => {
     };
     _matRoad = {
       ...Material.PRESETS.asphalt,
-      texture: textures.road, useTexture: true,
+      texture: textures.road,  useTexture: true,
     };
   }
 
-  // Retorna todos os render objects do terreno
   function getRenderObjects() {
     const m4   = twgl.m4;
     const S    = CONSTANTS.WORLD.SIZE;
     const objs = [];
 
-    // Plano de grama base
     objs.push({
       bufferInfo: _groundBuf,
       material:   _matGround,
       modelMat:   m4.identity(),
     });
 
-    // Grade de ruas (linhas X e Z a cada WORLD.SIZE / GRID_CELLS)
     const cells   = CONSTANTS.WORLD.GRID_CELLS;
     const spacing = S / cells;
     const half    = S / 2;
@@ -93,18 +106,16 @@ const Terrain = (() => {
     for (let i = 0; i <= cells; i++) {
       const pos = -half + i * spacing;
 
-      // Rua ao longo de Z (paralela ao eixo Z)
       objs.push({
         bufferInfo: _roadBuf,
         material:   _matRoad,
         modelMat:   m4.translate(m4.identity(), [pos, 0, 0]),
       });
 
-      // Rua ao longo de X (girada 90°)
       objs.push({
         bufferInfo: _roadBuf,
         material:   _matRoad,
-        modelMat:   m4.rotateY(m4.translate(m4.identity(), [0, 0, pos]), Math.PI/2),
+        modelMat:   m4.rotateY(m4.translate(m4.identity(), [0, 0, pos]), Math.PI / 2),
       });
     }
 
@@ -112,5 +123,4 @@ const Terrain = (() => {
   }
 
   return { init, getRenderObjects };
-
 })();
