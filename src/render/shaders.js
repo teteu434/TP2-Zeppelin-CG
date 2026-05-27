@@ -79,72 +79,99 @@ const Shaders = (() => {
   //             Lambert: intensidade = max(dot(N, L), 0)
   // ESPECULAR:  reflexo brilhante, depende do ângulo de visão
   //             Phong: intensidade = max(dot(R, V), 0)^shininess
-  const mainFS = `
-    precision mediump float;
+const mainFS = `
+  precision mediump float;
 
-    // Varyings do vertex shader (interpolados)
-    varying vec3 v_worldPos;
-    varying vec3 v_normal;
-    varying vec2 v_texcoord;
+  varying vec3 v_worldPos;
+  varying vec3 v_normal;
+  varying vec2 v_texcoord;
 
-    // ── Uniforms de material ───────────────────────────────────
-    uniform vec3  u_matDiffuse;     // Cor difusa do material
-    uniform vec3  u_matAmbient;     // Cor ambiente do material
-    uniform vec3  u_matSpecular;    // Cor especular do material
-    uniform float u_matShininess;   // Expoente especular (quanto maior, mais focado)
-    uniform float u_matAlpha;       // Transparência (1.0 = opaco)
-    uniform bool  u_useTexture;     // Flag: usar textura ou usar cor sólida
-    uniform sampler2D u_texture;    // Sampler da textura
+  // ── Uniforms de material ─────────────────────────────────
+  uniform vec3  u_matDiffuse;
+  uniform vec3  u_matAmbient;
+  uniform vec3  u_matSpecular;
+  uniform float u_matShininess;
+  uniform float u_matAlpha;
+  uniform bool  u_useTexture;
+  uniform sampler2D u_texture;
 
-    // ── Uniforms de iluminação ─────────────────────────────────
-    uniform vec3  u_lightDir;       // Direção da luz (no espaço de mundo)
-    uniform vec3  u_lightColor;     // Cor/intensidade da luz direcional
-    uniform vec3  u_ambientColor;   // Cor da luz ambiente global
-    uniform bool  u_lightingEnabled;// Toggle de iluminação (tecla L)
-    uniform vec3  u_cameraPos;      // Posição da câmera (para especular)
+  // ── Uniforms de iluminação ───────────────────────────────
+  uniform vec3  u_lightDir;
+  uniform vec3  u_lightColor;
+  uniform vec3  u_ambientColor;
+  uniform bool  u_lightingEnabled;
+  uniform vec3  u_cameraPos;
 
-    void main() {
-      // ── Cor base: textura ou material sólido ──────────────────
-      vec4 baseColor;
-      if (u_useTexture) {
-        baseColor = texture2D(u_texture, v_texcoord);
-      } else {
-        baseColor = vec4(u_matDiffuse, u_matAlpha);
-      }
+  // ── Uniforms de neblina ──────────────────────────────────
+  // u_fogEnabled: liga/desliga o efeito sem recompilar shader
+  // u_fogNear:    distância onde a neblina começa (fragmento visível)
+  // u_fogFar:     distância onde a neblina está completa (fragmento oculto)
+  // u_fogColor:   cor da neblina (deve combinar com o horizonte do skybox)
+  uniform bool  u_fogEnabled;
+  uniform float u_fogNear;
+  uniform float u_fogFar;
+  uniform vec4  u_fogColor;
 
-      if (!u_lightingEnabled) {
-        // Sem iluminação: cor base direta (modo flat)
-        gl_FragColor = baseColor;
-        return;
-      }
+  void main() {
+    // ── Cor base: textura ou material sólido ────────────────
+    vec4 baseColor;
+    if (u_useTexture) {
+      baseColor = texture2D(u_texture, v_texcoord);
+    } else {
+      baseColor = vec4(u_matDiffuse, u_matAlpha);
+    }
 
-      // ── Modelo de Phong ───────────────────────────────────────
-      vec3 N = normalize(v_normal);           // Normal normalizada
-      vec3 L = normalize(-u_lightDir);        // Direção para a luz
-      vec3 V = normalize(u_cameraPos - v_worldPos); // Direção para a câmera
+    // ── Iluminação Phong (idêntica ao original) ─────────────
+    vec4 litColor;
 
-      // COMPONENTE DIFUSA (Lei de Lambert)
-      // dot(N, L): cos do ângulo entre normal e luz
-      // max(..., 0): sem luz negativa (face traseira = 0)
+    if (!u_lightingEnabled) {
+      litColor = baseColor;
+    } else {
+      vec3 N = normalize(v_normal);
+      vec3 L = normalize(-u_lightDir);
+      vec3 V = normalize(u_cameraPos - v_worldPos);
+
       float diff = max(dot(N, L), 0.0);
 
-      // COMPONENTE ESPECULAR (Phong)
-      // R: vetor de reflexão da luz na superfície
       vec3  R    = reflect(-L, N);
-      // dot(R, V): quão alinhado está o reflexo com a câmera
       float spec = pow(max(dot(R, V), 0.0), u_matShininess);
 
-      // COMPOSIÇÃO FINAL:
       vec3 ambient  = u_ambientColor  * u_matAmbient;
       vec3 diffuse  = u_lightColor    * u_matDiffuse  * diff;
       vec3 specular = u_lightColor    * u_matSpecular * spec;
 
-      // Aplica iluminação sobre a cor da textura/material
       vec3 lit = (ambient + diffuse) * baseColor.rgb + specular;
-
-      gl_FragColor = vec4(lit, baseColor.a * u_matAlpha);
+      litColor = vec4(lit, baseColor.a * u_matAlpha);
     }
-  `;
+
+    // ── Neblina linear ──────────────────────────────────────
+    // Só executa se u_fogEnabled = true.
+    // Usar bool uniform é mais barato que recompilar o shader.
+    //
+    // 1. Distância euclidiana fragmento → câmera (espaço do mundo)
+    //    Mais preciso que usar gl_FragCoord.z porque não depende
+    //    da projeção perspectiva (não distorce para câmeras oblíquas).
+    //
+    // 2. fogFactor: 1.0 = totalmente visível, 0.0 = totalmente neblina
+    //    clamp evita valores fora de [0,1] para fragmentos
+    //    muito perto (>1) ou muito longe (<0).
+    //
+    // 3. mix(fogColor, litColor, fogFactor):
+    //    fogFactor=1 → litColor puro (perto, sem neblina)
+    //    fogFactor=0 → fogColor puro (longe, totalmente encoberto)
+    //    fogFactor=0.5 → 50% de cada (transição suave)
+    if (u_fogEnabled) {
+      float d         = length(u_cameraPos - v_worldPos);
+      float fogFactor = clamp(
+        (u_fogFar - d) / (u_fogFar - u_fogNear),
+        0.0, 1.0
+      );
+      gl_FragColor = mix(u_fogColor, litColor, fogFactor);
+    } else {
+      gl_FragColor = litColor;
+    }
+  }
+`;
 
   // ──────────────────────────────────────────────────────────────
   // SHADER DE CÉU — Gradiente simples sem iluminação

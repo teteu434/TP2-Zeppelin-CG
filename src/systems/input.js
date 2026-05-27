@@ -66,6 +66,13 @@ const Input = (() => {
       if (el) el.textContent = `💡 Luz: ${State.get().lighting.enabled ? 'ON' : 'OFF'}`;
     };
 
+    // Neblina
+    _actionHandlers['KeyN'] = () => {
+      Fog.toggle();
+      const el = document.getElementById('status-fog');
+      if (el) el.textContent = `🌫️ Neblina: ${Fog.isEnabled() ? 'ON' : 'OFF'}`;
+    };
+
     // Toggle de mute
     _actionHandlers['KeyM'] = () => {
       SoundManager.toggleMute();

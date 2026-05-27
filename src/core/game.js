@@ -118,6 +118,7 @@ const Game = (() => {
 
     // Obtém uniforms de iluminação
     const lightUniforms = Lighting.toUniforms(camMats.eye);
+    const fogUniforms = Fog.toUniforms();
 
     // ── Skybox (renderizado primeiro, sem depth write) ────────
     Renderer.drawSkybox(camMats);
@@ -125,25 +126,25 @@ const Game = (() => {
     // ── Terreno ───────────────────────────────────────────────
     const terrainObjs = Terrain.getRenderObjects();
     for (const obj of terrainObjs) {
-      Renderer.drawObject(obj, camMats, lightUniforms);
+      Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
     }
 
     // ── Prédios ───────────────────────────────────────────────
     const buildObjs = CityGenerator.getBuildingObjects();
     for (const obj of buildObjs) {
-      Renderer.drawObject(obj, camMats, lightUniforms);
+      Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
     }
 
     // ── Árvores ───────────────────────────────────────────────
     const treeObjs = CityGenerator.getTreeObjects();
     for (const obj of treeObjs) {
-      Renderer.drawObject(obj, camMats, lightUniforms);
+      Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
     }
 
     // ── Aeronave (hierárquica — múltiplos render objects) ─────
     const aircraftObjs = Aircraft.getRenderObjects();
     for (const obj of aircraftObjs) {
-      Renderer.drawObject(obj, camMats, lightUniforms);
+      Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
     }
   }
 

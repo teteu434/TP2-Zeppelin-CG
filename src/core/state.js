@@ -56,6 +56,10 @@ const State = (() => {
       totalTime: 0,               // Tempo total acumulado (segundos)
     },
 
+    render: {
+      fogEnabled: false,   // false = desligado por padrão; N para ligar
+    },
+
     // ── Audio ─────────────────────────────────────────────────
     audio: {
       muted: false,

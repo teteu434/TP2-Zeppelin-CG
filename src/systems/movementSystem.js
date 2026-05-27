@@ -20,6 +20,52 @@
 
 const MovementSystem = (() => {
 
+  // Retorna a altura máxima do terreno sólido em (px, pz) considerando
+  // o corpo do prédio E o topo decorativo (pirâmide ou caixa)
+  function _getMaxHeightAt(px, pz, bounds) {
+    const MARGIN = 6.0;
+    let maxH = 0;
+
+    for (const b of bounds) {
+      const inX = px > b.minX - MARGIN && px < b.maxX + MARGIN;
+      const inZ = pz > b.minZ - MARGIN && pz < b.maxZ + MARGIN;
+      if (!inX || !inZ) continue;
+
+      // Altura do corpo do prédio é sempre válida se está na área
+      maxH = Math.max(maxH, b.bodyHeight);
+
+      // ── Pirâmide (brick) ────────────────────────────────────
+      if (b.topScale > 0) {
+        const pyMinX = b.minX + b.topOffsetX - MARGIN;
+        const pyMaxX = b.minX + b.topOffsetX + b.topScale + MARGIN;
+        const pyMinZ = b.minZ + b.topOffsetZ - MARGIN;
+        const pyMaxZ = b.minZ + b.topOffsetZ + b.topScale + MARGIN;
+
+        if (px > pyMinX && px < pyMaxX && pz > pyMinZ && pz < pyMaxZ) {
+          // Distância normalizada ao centro da pirâmide (0=centro, 1=borda)
+          const cx = (b.minX + b.topOffsetX + b.topScale / 2);
+          const cz = (b.minZ + b.topOffsetZ + b.topScale / 2);
+          const dx = Math.abs(px - cx) / (b.topScale / 2 + MARGIN);
+          const dz = Math.abs(pz - cz) / (b.topScale / 2 + MARGIN);
+          const t  = Math.max(dx, dz);          // 0 no topo, 1 na base
+          const pyH = b.topScale * 0.5;         // altura da pirâmide
+          const heightAtPoint = b.bodyHeight + pyH * Math.max(0, 1 - t);
+          maxH = Math.max(maxH, heightAtPoint);
+        }
+      }
+
+      // ── Caixa de cobertura (glass) ──────────────────────────
+      if (b.covH > 0) {
+        if (px > b.covMinX - MARGIN && px < b.covMaxX + MARGIN &&
+            pz > b.covMinZ - MARGIN && pz < b.covMaxZ + MARGIN) {
+          maxH = Math.max(maxH, b.bodyHeight + b.covH);
+        }
+      }
+    }
+
+    return maxH;
+  }
+
   function update(dt) {
     const keys = State.get().input.keys;
     const ac   = State.get().aircraft;
@@ -33,25 +79,58 @@ const MovementSystem = (() => {
 
     // ── Movimento frente/trás ─────────────────────────────────
     let moving = 0;
-    if (keys['KeyW'] || keys['ArrowUp'])   moving -= 1;  // -Z = frente
+    if (keys['KeyW'] || keys['ArrowUp'])   moving -= 1;
     if (keys['KeyS'] || keys['ArrowDown']) moving += 1;
 
-    // Direção "frente" baseada na rotação atual
-    // sin/cos do yaw dão os componentes X e Z do vetor frente
     const fwdX = Math.sin(ac.rotation);
     const fwdZ = Math.cos(ac.rotation);
 
-    ac.position[0] += fwdX * moving * C.SPEED * dt;
-    ac.position[2] += fwdZ * moving * C.SPEED * dt;
+    const newX = ac.position[0] + fwdX * moving * C.SPEED * dt;
+    const newZ = ac.position[2] + fwdZ * moving * C.SPEED * dt;
 
     // ── Movimento vertical ────────────────────────────────────
     let vertical = 0;
-    if (keys['KeyQ'] || keys['Space']) vertical += 1;
+    if (keys['KeyQ'] || keys['Space'])     vertical += 1;
     if (keys['KeyE'] || keys['ShiftLeft']) vertical -= 1;
-    ac.position[1] += vertical * C.VERTICAL_SPEED * dt;
+    const newY = MathUtils.clamp(
+      ac.position[1] + vertical * C.VERTICAL_SPEED * dt,
+      C.MIN_HEIGHT, C.MAX_HEIGHT
+    );
 
-    // Limites de altitude
-    ac.position[1] = MathUtils.clamp(ac.position[1], C.MIN_HEIGHT, C.MAX_HEIGHT);
+    // ── Colisão lateral (impede atravessar paredes) ───────────
+    const MARGIN = 6.0;
+    const bounds = CityGenerator.getBuildingBounds();
+    let blockedX = false;
+    let blockedZ = false;
+
+    for (const b of bounds) {
+      // Altura total real do prédio incluindo topo decorativo
+      const fullH = b.bodyHeight + Math.max(b.topScale * 0.5, b.covH);
+      if (newY >= fullH + MARGIN) continue;
+
+      const inX_new = newX > b.minX - MARGIN && newX < b.maxX + MARGIN;
+      const inZ_new = newZ > b.minZ - MARGIN && newZ < b.maxZ + MARGIN;
+      const inX_cur = ac.position[0] > b.minX - MARGIN && ac.position[0] < b.maxX + MARGIN;
+      const inZ_cur = ac.position[2] > b.minZ - MARGIN && ac.position[2] < b.maxZ + MARGIN;
+
+      if (inX_new && inZ_new) {
+        if (!inX_cur) blockedX = true;
+        if (!inZ_cur) blockedZ = true;
+      }
+    }
+
+    const resolvedX = blockedX ? ac.position[0] : newX;
+    const resolvedZ = blockedZ ? ac.position[2] : newZ;
+
+    // ── Colisão vertical (impede descer dentro de prédios/telhados) ──
+    // Calcula a altura do sólido mais alto sob a nave na posição resolvida
+    const floorHere    = _getMaxHeightAt(resolvedX, resolvedZ, bounds);
+    const minAllowedY  = Math.max(C.MIN_HEIGHT, floorHere + MARGIN);
+    const resolvedY    = Math.max(newY, minAllowedY);
+
+    ac.position[0] = resolvedX;
+    ac.position[1] = resolvedY;
+    ac.position[2] = resolvedZ;
 
     // ── Limites do mundo ──────────────────────────────────────
     const half = CONSTANTS.WORLD.SIZE / 2;
@@ -59,17 +138,12 @@ const MovementSystem = (() => {
     ac.position[2] = MathUtils.clamp(ac.position[2], -half, half);
 
     // ── Inclinação cosmética (tilt) ───────────────────────────
-    // Ao mover para frente: inclina para frente (tiltX negativo)
-    // Ao girar: inclina lateralmente (tiltZ)
     const targetTiltX = -moving  * C.TILT_FACTOR;
     const targetTiltZ =  turning * C.TILT_FACTOR;
-
-    // Suavização do tilt com lerp
     ac.tiltX = MathUtils.lerp(ac.tiltX, targetTiltX, C.TILT_RECOVERY * dt);
     ac.tiltZ = MathUtils.lerp(ac.tiltZ, targetTiltZ, C.TILT_RECOVERY * dt);
 
     // ── Rotação das hélices ───────────────────────────────────
-    // Acumula ângulo continuamente (módulo 2π para não crescer infinitamente)
     ac.rotorAngle = (ac.rotorAngle + C.ROTOR_SPEED * dt) % (Math.PI * 2);
   }
 

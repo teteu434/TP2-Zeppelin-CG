@@ -64,5 +64,11 @@ const CONSTANTS = Object.freeze({
     MAX_DELTA: 0.1,           // Cap do deltaTime (evita saltos com tab inativo)
     FPS_SAMPLE_SIZE: 60,      // Amostras para cálculo de FPS médio
   },
+
+  FOG: {
+    NEAR:  120.0,              // distância onde neblina começa
+    FAR:   520.0,              // distância onde neblina está total
+    COLOR: [0.50, 0.68, 0.92, 1.0], // cor do horizonte (combina com SKY_BOTTOM)
+  },
  
 });

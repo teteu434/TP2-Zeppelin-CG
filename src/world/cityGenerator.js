@@ -20,6 +20,7 @@ const CityGenerator = (() => {
   // Lista de render objects gerados (preenchida em init)
   let _buildingObjs = [];
   let _treeObjs     = [];
+  let _buildingBounds = [];
 
   function init(gl, textures) {
     const rng  = MathUtils.seededRandom(42);  // Semente fixa → cidade consistente
@@ -100,6 +101,35 @@ const CityGenerator = (() => {
       { x, z, width, depth, height, type },
       textures
     );
+
+    let totalMaxY = height;
+
+    // Considera o topo extra de cada tipo, espelhando a lógica de Building.getRenderObjects
+    if (type === 'brick' && height > 15) {
+      const topScale = Math.min(width, depth) * 0.8;
+      totalMaxY = height + topScale * 0.5;  // altura da pirâmide
+    }
+    if (type === 'glass' && height > 20) {
+      const covH = height * 0.08;
+      totalMaxY = height + covH;            // altura da caixa de cobertura
+    }
+
+    _buildingBounds.push({
+      minX: x,  maxX: x + width,
+      minZ: z,  maxZ: z + depth,
+      bodyHeight: height,
+      type: type,
+      // dados do topo para cálculo de altura dinâmica
+      topScale:   (type === 'brick' && height > 15) ? Math.min(width, depth) * 0.8 : 0,
+      topOffsetX: (type === 'brick' && height > 15) ? (width  - Math.min(width, depth) * 0.8) / 2 : 0,
+      topOffsetZ: (type === 'brick' && height > 15) ? (depth  - Math.min(width, depth) * 0.8) / 2 : 0,
+      covH:       (type === 'glass' && height > 20) ? height * 0.08 : 0,
+      covMinX:    (type === 'glass' && height > 20) ? x + width  * 0.35 : 0,
+      covMaxX:    (type === 'glass' && height > 20) ? x + width  * 0.35 + width  * 0.3 : 0,
+      covMinZ:    (type === 'glass' && height > 20) ? z + depth  * 0.35 : 0,
+      covMaxZ:    (type === 'glass' && height > 20) ? z + depth  * 0.35 + depth  * 0.3 : 0,
+    });
+
     _buildingObjs.push(...objs);
   }
 
@@ -119,7 +149,8 @@ const CityGenerator = (() => {
 
   function getBuildingObjects() { return _buildingObjs; }
   function getTreeObjects()     { return _treeObjs; }
+  function getBuildingBounds() { return _buildingBounds; }
 
-  return { init, getBuildingObjects, getTreeObjects };
+  return { init, getBuildingObjects, getTreeObjects, getBuildingBounds };
 
 })();

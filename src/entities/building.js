@@ -77,12 +77,12 @@ const Building = (() => {
       const b1 = base[(i+1)%4];
 
       // Normal da face via produto vetorial
-      const e1 = [b1[0]-b0[0], b1[1]-b0[1], b1[2]-b0[2]];
-      const e2 = [apex[0]-b0[0], apex[1]-b0[1], apex[2]-b0[2]];
+      const e1 = [apex[0]-b0[0], apex[1]-b0[1], apex[2]-b0[2]];
+      const e2 = [b1[0]-b0[0], b1[1]-b0[1], b1[2]-b0[2]];
       const n  = MathUtils.crossVec3([0,0,0], e1, e2);
       MathUtils.normalizeVec3(n, n);
 
-      positions.push(...b0, ...b1, ...apex);
+      positions.push(...b0, ...apex, ...b1);
       normals.push(...n, ...n, ...n);
       texcoords.push(0,0, 1,0, 0.5,1);
     }

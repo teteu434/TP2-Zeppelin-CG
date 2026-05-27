@@ -45,7 +45,7 @@ const Renderer = (() => {
   }
 
   // ── Draw call principal ───────────────────────────────────────
-  function drawObject(renderObject, camMatrices, lightUniforms) {
+  function drawObject(renderObject, camMatrices, lightUniforms, fogUniforms) {
     const gl   = _gl;
     const prog = _programs.main;
 
@@ -61,23 +61,21 @@ const Renderer = (() => {
     const resolvedTexture = (mat.useTexture && mat.texture) ? mat.texture : _fallbackTex;
     const useTexture      = !!(mat.useTexture && mat.texture);
 
-    const uniforms = {
-      // MVP
-      u_model:          modelMat,
-      u_view:           camMatrices.view,
-      u_projection:     camMatrices.projection,
-      u_normalMatrix:   normalMat3,
-      // Material
-      u_matDiffuse:     mat.diffuse,
-      u_matAmbient:     mat.ambient,
-      u_matSpecular:    mat.specular,
-      u_matShininess:   mat.shininess,
-      u_matAlpha:       mat.alpha !== undefined ? mat.alpha : 1.0,
-      u_useTexture:     useTexture,
-      u_texture:        resolvedTexture,   // sempre uma textura WebGL válida
-      // Iluminação (spread do objeto de uniforms de luz)
-      ...lightUniforms,
-    };
+  const uniforms = {
+    u_model:          modelMat,
+    u_view:           camMatrices.view,
+    u_projection:     camMatrices.projection,
+    u_normalMatrix:   normalMat3,
+    u_matDiffuse:     mat.diffuse,
+    u_matAmbient:     mat.ambient,
+    u_matSpecular:    mat.specular,
+    u_matShininess:   mat.shininess,
+    u_matAlpha:       mat.alpha !== undefined ? mat.alpha : 1.0,
+    u_useTexture:     useTexture,
+    u_texture:        resolvedTexture,
+    ...lightUniforms,
+    ...fogUniforms,   // <-- adiciona os 4 uniforms de fog
+  };
 
     twgl.setUniforms(prog, uniforms);
     twgl.setBuffersAndAttributes(gl, prog, renderObject.bufferInfo);
