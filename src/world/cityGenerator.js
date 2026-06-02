@@ -18,9 +18,13 @@
 const CityGenerator = (() => {
 
   // Lista de render objects gerados (preenchida em init)
-  let _buildingObjs = [];
-  let _treeObjs     = [];
+  let _buildingObjs   = [];
+  let _treeObjs       = [];
   let _buildingBounds = [];
+  let _lampPostObjs   = [];
+  let _waterTowerObjs = [];
+  let _antennaObjs    = [];
+  let _wallObjs       = [];
 
   function init(gl, textures) {
     const rng  = MathUtils.seededRandom(42);  // Semente fixa → cidade consistente
@@ -30,6 +34,10 @@ const CityGenerator = (() => {
 
     Building.init(gl);
     Tree.init(gl, textures);
+    LampPost.init(gl, textures);
+    WaterTower.init(gl, textures);
+    Antenna.init(gl, textures);
+    UrbanWall.init(gl, textures);
 
     // ── Geração por grade ──────────────────────────────────────
     for (let row = 0; row < C.GRID_CELLS; row++) {
@@ -50,16 +58,24 @@ const CityGenerator = (() => {
         const roll = rng();  // 0..1
 
         if (dist < maxDist * 0.3) {
-          // Centro: arranha-céus
+          // Downtown: arranha-céus + antenas + postes
           if (roll < 0.85) _spawnBuilding(rng, cellX, cellZ, spacing, textures, 'downtown');
+          if (rng() < 0.30) _spawnAntenna(rng, cellX, cellZ, spacing);
+          if (rng() < 0.50) _spawnLampPost(rng, cellX, cellZ, spacing);
         } else if (dist < maxDist * 0.65) {
-          // Meio: prédios médios e casas
+          // Midtown: prédios médios + antenas + caixas d'água + postes
           if (roll < 0.70) _spawnBuilding(rng, cellX, cellZ, spacing, textures, 'midtown');
           else if (roll < 0.85) _spawnTrees(rng, cellX, cellZ, spacing, 2);
+          if (rng() < 0.15) _spawnAntenna(rng, cellX, cellZ, spacing);
+          if (rng() < 0.25) _spawnWaterTower(rng, cellX, cellZ, spacing);
+          if (rng() < 0.55) _spawnLampPost(rng, cellX, cellZ, spacing);
         } else {
-          // Periferia: casas e árvores
+          // Suburb: casas + árvores + muros + caixas d'água + postes
           if (roll < 0.40) _spawnBuilding(rng, cellX, cellZ, spacing, textures, 'suburb');
           else if (roll < 0.80) _spawnTrees(rng, cellX, cellZ, spacing, 3);
+          if (rng() < 0.35) _spawnWall(rng, cellX, cellZ, spacing);
+          if (rng() < 0.12) _spawnWaterTower(rng, cellX, cellZ, spacing);
+          if (rng() < 0.45) _spawnLampPost(rng, cellX, cellZ, spacing);
         }
       }
     }
@@ -147,10 +163,79 @@ const CityGenerator = (() => {
     }
   }
 
-  function getBuildingObjects() { return _buildingObjs; }
-  function getTreeObjects()     { return _treeObjs; }
-  function getBuildingBounds() { return _buildingBounds; }
+  function _spawnLampPost(rng, cx, cz, spacing) {
+    // half = spacing * 0.3 → max 15u do centro. Rua a 25u → margem segura de 10u.
+    const half = spacing * 0.3;
+    const x = cx + MathUtils.randRange(rng, -half, half);
+    const z = cz + MathUtils.randRange(rng, -half, half);
+    const objs = LampPost.getRenderObjects({ x, z });
+    _lampPostObjs.push(...objs);
+  }
 
-  return { init, getBuildingObjects, getTreeObjects, getBuildingBounds };
+  function _spawnWaterTower(rng, cx, cz, spacing) {
+    // half = spacing * 0.22 → margem de ~13u antes da rua, pernas até ±1.6u.
+    const half = spacing * 0.22;
+    const x = cx + MathUtils.randRange(rng, -half, half);
+    const z = cz + MathUtils.randRange(rng, -half, half);
+    const objs = WaterTower.getRenderObjects({ x, z });
+    _waterTowerObjs.push(...objs);
+
+    _buildingBounds.push({
+      minX: x - 2.8, maxX: x + 2.8,
+      minZ: z - 2.8, maxZ: z + 2.8,
+      bodyHeight: 13.3,
+      type: 'concrete',
+      topScale: 0, topOffsetX: 0, topOffsetZ: 0,
+      covH: 0, covMinX: 0, covMaxX: 0, covMinZ: 0, covMaxZ: 0,
+    });
+  }
+
+  function _spawnAntenna(rng, cx, cz, spacing) {
+    // half = spacing * 0.22 → hastes de ±1.6u ficam dentro da zona segura.
+    const half = spacing * 0.22;
+    const x = cx + MathUtils.randRange(rng, -half, half);
+    const z = cz + MathUtils.randRange(rng, -half, half);
+    const objs = Antenna.getRenderObjects({ x, z });
+    _antennaObjs.push(...objs);
+
+    _buildingBounds.push({
+      minX: x - 1.0, maxX: x + 1.0,
+      minZ: z - 1.0, maxZ: z + 1.0,
+      bodyHeight: 26.0,
+      type: 'concrete',
+      topScale: 0, topOffsetX: 0, topOffsetZ: 0,
+      covH: 0, covMinX: 0, covMaxX: 0, covMinZ: 0, covMaxZ: 0,
+    });
+  }
+
+  function _spawnWall(rng, cx, cz, spacing) {
+    // half = spacing * 0.22 → muro de 18u (±9) fica a 25-11-9=5u da rua.
+    const half   = spacing * 0.22;
+    const x      = cx + MathUtils.randRange(rng, -half, half);
+    const z      = cz + MathUtils.randRange(rng, -half, half);
+    const length = MathUtils.randRange(rng, 8.0, 16.0);
+    const useBrick = rng() < 0.5;
+    const objs = UrbanWall.getRenderObjects({ x, z, length, useBrick });
+    _wallObjs.push(...objs);
+  }
+
+  function getBuildingObjects()   { return _buildingObjs;   }
+  function getTreeObjects()       { return _treeObjs;       }
+  function getBuildingBounds()    { return _buildingBounds;  }
+  function getLampPostObjects()   { return _lampPostObjs;   }
+  function getWaterTowerObjects() { return _waterTowerObjs; }
+  function getAntennaObjects()    { return _antennaObjs;    }
+  function getWallObjects()       { return _wallObjs;       }
+
+  return {
+    init,
+    getBuildingObjects,
+    getTreeObjects,
+    getBuildingBounds,
+    getLampPostObjects,
+    getWaterTowerObjects,
+    getAntennaObjects,
+    getWallObjects,
+  };
 
 })();

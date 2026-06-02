@@ -25,7 +25,7 @@ const State = (() => {
 
     // ── Câmera ────────────────────────────────────────────────
     camera: {
-      mode: 'top',                 // 'top' | 'cinematic'
+      mode: 'cinematic',                 // 'top' | 'cinematic'
       cinematicAngle: 'back',      // 'front' | 'back' | 'left' | 'right'
       // Posição e alvo atuais (com lerp aplicado — suaves)
       position:   [0, 120, 0],

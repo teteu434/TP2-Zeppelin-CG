@@ -52,10 +52,10 @@ const Terrain = (() => {
     // Correção idêntica: trocar B↔C em cada triângulo.
 
     const positions = new Float32Array([
-      // Triângulo 1
-      -hw, 0.01, -hl,    hw, 0.01,  hl,    hw, 0.01, -hl,
+      // Triângulo 1 — Y=0.06 garante separação do chão além da precisão do depth buffer
+      -hw, 0.06, -hl,    hw, 0.06,  hl,    hw, 0.06, -hl,
       // Triângulo 2
-      -hw, 0.01, -hl,   -hw, 0.01,  hl,    hw, 0.01,  hl,
+      -hw, 0.06, -hl,   -hw, 0.06,  hl,    hw, 0.06,  hl,
     ]);
     const normals = new Float32Array([
       0,1,0, 0,1,0, 0,1,0,
@@ -106,16 +106,22 @@ const Terrain = (() => {
     for (let i = 0; i <= cells; i++) {
       const pos = -half + i * spacing;
 
+      // Ruas N-S (correm ao longo de Z) — polygonOffset empurra para frente da câmera
+      // no depth buffer, eliminando z-fighting com o chão a qualquer distância.
       objs.push({
-        bufferInfo: _roadBuf,
-        material:   _matRoad,
-        modelMat:   m4.translate(m4.identity(), [pos, 0, 0]),
+        bufferInfo:    _roadBuf,
+        material:      _matRoad,
+        modelMat:      m4.translate(m4.identity(), [pos, 0, 0]),
+        polygonOffset: true,
       });
 
+      // Ruas E-W (rotacionadas 90°) — Y extra de 0.04 no model matrix previne
+      // z-fighting nos cruzamentos (dois quads coplanares).
       objs.push({
-        bufferInfo: _roadBuf,
-        material:   _matRoad,
-        modelMat:   m4.rotateY(m4.translate(m4.identity(), [0, 0, pos]), Math.PI / 2),
+        bufferInfo:    _roadBuf,
+        material:      _matRoad,
+        modelMat:      m4.rotateY(m4.translate(m4.identity(), [0, 0.04, pos]), Math.PI / 2),
+        polygonOffset: true,
       });
     }
 

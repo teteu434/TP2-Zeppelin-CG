@@ -141,6 +141,26 @@ const Game = (() => {
       Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
     }
 
+    // ── Postes de luz ─────────────────────────────────────────
+    for (const obj of CityGenerator.getLampPostObjects()) {
+      Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
+    }
+
+    // ── Caixas d'água ─────────────────────────────────────────
+    for (const obj of CityGenerator.getWaterTowerObjects()) {
+      Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
+    }
+
+    // ── Antenas ───────────────────────────────────────────────
+    for (const obj of CityGenerator.getAntennaObjects()) {
+      Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
+    }
+
+    // ── Muros urbanos ─────────────────────────────────────────
+    for (const obj of CityGenerator.getWallObjects()) {
+      Renderer.drawObject(obj, camMats, lightUniforms, fogUniforms);
+    }
+
     // ── Aeronave (hierárquica — múltiplos render objects) ─────
     const aircraftObjs = Aircraft.getRenderObjects();
     for (const obj of aircraftObjs) {

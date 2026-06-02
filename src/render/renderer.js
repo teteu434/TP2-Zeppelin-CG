@@ -49,6 +49,15 @@ const Renderer = (() => {
     const gl   = _gl;
     const prog = _programs.main;
 
+    // Polygon offset: desloca o valor de profundidade do fragmento para frente da
+    // câmera no espaço NDC. Usado nas ruas para evitar z-fighting com o chão
+    // (rua e chão coplanares → depth buffer perde precisão a distâncias maiores).
+    const usePolyOffset = !!renderObject.polygonOffset;
+    if (usePolyOffset) {
+      gl.enable(gl.POLYGON_OFFSET_FILL);
+      gl.polygonOffset(-1.0, -2.0);
+    }
+
     gl.useProgram(prog.program);
 
     const modelMat   = renderObject.modelMat;
@@ -84,6 +93,10 @@ const Renderer = (() => {
       renderObject.bufferInfo,
       renderObject.primitiveType || gl.TRIANGLES
     );
+
+    if (usePolyOffset) {
+      gl.disable(gl.POLYGON_OFFSET_FILL);
+    }
   }
 
   // ── Skybox ────────────────────────────────────────────────────

@@ -73,14 +73,14 @@ const MovementSystem = (() => {
 
     // ── Rotação (yaw) ─────────────────────────────────────────
     let turning = 0;
-    if (keys['KeyA'] || keys['ArrowLeft'])  turning -= 1;
-    if (keys['KeyD'] || keys['ArrowRight']) turning += 1;
+    if (keys['KeyA'] || keys['ArrowLeft'])  turning += 1;
+    if (keys['KeyD'] || keys['ArrowRight']) turning -= 1;
     ac.rotation += turning * C.TURN_SPEED * dt;
 
     // ── Movimento frente/trás ─────────────────────────────────
     let moving = 0;
-    if (keys['KeyW'] || keys['ArrowUp'])   moving -= 1;
-    if (keys['KeyS'] || keys['ArrowDown']) moving += 1;
+    if (keys['KeyW'] || keys['ArrowUp'])   moving += 1;
+    if (keys['KeyS'] || keys['ArrowDown']) moving -= 1;
 
     const fwdX = Math.sin(ac.rotation);
     const fwdZ = Math.cos(ac.rotation);

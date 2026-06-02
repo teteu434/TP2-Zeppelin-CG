@@ -93,6 +93,13 @@ const Camera = (() => {
 
     MathUtils.lerpVec3(cam.position, cam.position, desired.eye,    t);
     MathUtils.lerpVec3(cam.target,   cam.target,   desired.target, t);
+
+    // up vector não é interpolado — depende do modo de câmera.
+    // Sem este update, a câmera superior usa up=[0,1,0] que é paralelo ao
+    // forward=[0,-1,0] → produto vetorial nulo → matriz degenera → tela preta.
+    cam.up[0] = desired.up[0];
+    cam.up[1] = desired.up[1];
+    cam.up[2] = desired.up[2];
   }
 
   // ── Gera matrizes WebGL para o renderer ──────────────────────
