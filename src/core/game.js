@@ -8,13 +8,14 @@
 //     ├── Input.updateHUD()           → atualiza UI
 //     ├── MovementSystem.update(dt)   → move aeronave
 //     ├── CameraSystem.update(dt)     → suaviza câmera
-//     ├── Lighting.update(totalTime)  → anima iluminação
+//     ├── Lighting.update(dt)         → avança ciclo dia/noite  ← dt, não totalTime
+//     ├── Aircraft.update(dt)         → gira anel spinner
 //     └── _render()
 //           ├── Renderer.resize()
 //           ├── Renderer.clear()
 //           ├── Camera.getMatrices()
 //           ├── Lighting.toUniforms()
-//           ├── Renderer.drawSkybox()
+//           ├── Renderer.drawSkybox() → usa Lighting.getSkyColors()
 //           ├── Terrain.getRenderObjects() → drawObject (cada)
 //           ├── CityGenerator.getBuildingObjects() → drawObject (cada)
 //           ├── CityGenerator.getTreeObjects() → drawObject (cada)
@@ -44,7 +45,6 @@ const Game = (() => {
     console.log('[Game] Contexto WebGL criado:', _gl.constructor.name);
 
     // Ajusta resolução do canvas para o devicePixelRatio
-    // (evita canvas borrado em telas HiDPI/Retina)
     twgl.resizeCanvasToDisplaySize(canvas);
     _gl.viewport(0, 0, canvas.width, canvas.height);
 
@@ -97,8 +97,14 @@ const Game = (() => {
     Input.updateHUD();
     MovementSystem.update(dt);
     CameraSystem.update(dt);
-    Lighting.update(Timing.getTotal());
+
+    // IMPORTANTE: Lighting.update recebe dt (delta time em segundos),
+    // NÃO o tempo total. O sistema de iluminação acumula o ângulo
+    // internamente para o ciclo dia/noite.
+    Lighting.update(dt);
+
     Aircraft.update(dt);
+
     // 3. Renderiza a cena
     _render();
   }
@@ -121,6 +127,8 @@ const Game = (() => {
     const fogUniforms = Fog.toUniforms();
 
     // ── Skybox (renderizado primeiro, sem depth write) ────────
+    // drawSkybox lê Lighting.getSkyColors() internamente —
+    // o céu muda de cor junto com o ciclo dia/noite.
     Renderer.drawSkybox(camMats);
 
     // ── Terreno ───────────────────────────────────────────────

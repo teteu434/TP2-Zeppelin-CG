@@ -105,11 +105,17 @@ const Renderer = (() => {
     gl.useProgram(_programs.sky.program);
     gl.depthMask(false);
 
+    // Cores dinâmicas do ciclo dia/noite.
+    // Fallback para as constantes originais caso Lighting não exista.
+    const skyColors = (typeof Lighting !== 'undefined' && Lighting.getSkyColors)
+      ? Lighting.getSkyColors()
+      : { top: CONSTANTS.COLORS.SKY_TOP, bottom: CONSTANTS.COLORS.SKY_BOTTOM };
+
     twgl.setUniforms(_programs.sky, {
       u_projection: camMatrices.projection,
       u_view:       camMatrices.view,
-      u_skyTop:     CONSTANTS.COLORS.SKY_TOP,
-      u_skyBottom:  CONSTANTS.COLORS.SKY_BOTTOM,
+      u_skyTop:     skyColors.top,
+      u_skyBottom:  skyColors.bottom,
     });
 
     twgl.setBuffersAndAttributes(gl, _programs.sky, _skyBufferInfo);

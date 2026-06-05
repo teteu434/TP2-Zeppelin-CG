@@ -136,11 +136,18 @@ const mainFS = `
       vec3  R    = reflect(-L, N);
       float spec = pow(max(dot(R, V), 0.0), u_matShininess);
 
-      vec3 ambient  = u_ambientColor  * u_matAmbient;
-      vec3 diffuse  = u_lightColor    * u_matDiffuse  * diff;
-      vec3 specular = u_lightColor    * u_matSpecular * spec;
+      // Ambient: u_ambientColor define a intensidade mínima da cena
+      // (controlada pelo ciclo dia/noite). u_matAmbient ajusta apenas
+      // o TOM do material (ex: grama mais esverdeada na sombra),
+      // mas não reduz a intensidade global — por isso somamos 0.5
+      // antes de multiplicar, garantindo que matAmbient escuro não
+      // apague a luz ambiente do céu.
+      vec3 matAmbientTone = u_matAmbient + 0.5;
+      vec3 ambient  = u_ambientColor * matAmbientTone * baseColor.rgb;
+      vec3 diffuse  = u_lightColor   * u_matDiffuse   * diff * baseColor.rgb;
+      vec3 specular = u_lightColor   * u_matSpecular  * spec;
 
-      vec3 lit = (ambient + diffuse) * baseColor.rgb + specular;
+      vec3 lit = ambient + diffuse + specular;
       litColor = vec4(lit, baseColor.a * u_matAlpha);
     }
 
