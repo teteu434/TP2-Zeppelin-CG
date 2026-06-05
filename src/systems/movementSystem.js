@@ -143,8 +143,15 @@ const MovementSystem = (() => {
     ac.tiltX = MathUtils.lerp(ac.tiltX, targetTiltX, C.TILT_RECOVERY * dt);
     ac.tiltZ = MathUtils.lerp(ac.tiltZ, targetTiltZ, C.TILT_RECOVERY * dt);
 
-    // ── Rotação das hélices ───────────────────────────────────
+    // ── Rotação do rotor lateral ──────────────────────────────
     ac.rotorAngle = (ac.rotorAngle + C.ROTOR_SPEED * dt) % (Math.PI * 2);
+
+    // ── Movimento visual suave da nave ───────────────────────
+    ac.visualTime = (ac.visualTime || 0) + dt;
+    const t = ac.visualTime;
+    ac.hoverOffset = Math.sin(t * 1.25) * 0.35;
+    ac.wobbleX = Math.sin(t * 0.85) * 0.025;
+    ac.wobbleZ = Math.cos(t * 1.05) * 0.025;
   }
 
   return { update };

@@ -19,8 +19,12 @@ const State = (() => {
       rotation:    0,              // Rotação no eixo Y (yaw), em radianos
       tiltX:       0,              // Inclinação cosmética frente/trás
       tiltZ:       0,              // Inclinação cosmética esquerda/direita
-      rotorAngle:  0,              // Ângulo atual das hélices (acumulado)
+      rotorAngle:  0,              // Ângulo do rotor lateral (acumulado)
       velocity:    [0, 0, 0],      // Velocidade atual (para suavização futura)
+      visualTime:  0,              // Tempo visual acumulado para hover/wobble
+      hoverOffset: 0,              // Offset vertical suave (visual)
+      wobbleX:     0,              // Inclinação visual suave no eixo X
+      wobbleZ:     0,              // Inclinação visual suave no eixo Z
     },
 
     // ── Câmera ────────────────────────────────────────────────
@@ -93,6 +97,10 @@ const State = (() => {
     _state.aircraft.tiltZ       = 0;
     _state.aircraft.rotorAngle  = 0;
     _state.aircraft.velocity    = [0, 0, 0];
+    _state.aircraft.visualTime   = 0;
+    _state.aircraft.hoverOffset  = 0;
+    _state.aircraft.wobbleX     = 0;
+    _state.aircraft.wobbleZ     = 0;
   }
 
   return { get, isKeyDown, resetAircraft };

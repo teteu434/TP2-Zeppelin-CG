@@ -98,7 +98,7 @@ const Game = (() => {
     MovementSystem.update(dt);
     CameraSystem.update(dt);
     Lighting.update(Timing.getTotal());
-
+    Aircraft.update(dt);
     // 3. Renderiza a cena
     _render();
   }
