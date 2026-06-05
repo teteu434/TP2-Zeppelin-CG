@@ -78,25 +78,25 @@ const Antenna = (() => {
     };
   }
 
-  // config = { x, z }
+  // config = { x, z, terrainY }
   function getRenderObjects(config) {
-    const { x, z } = config;
+    const { x, z, terrainY = 0 } = config;
     const m4   = twgl.m4;
     const objs = [];
 
     const towerH = 20.0;
     const towerW = 0.45;
 
-    // Base de ancoragem: 1.8×0.5×1.8
+    // Base de ancoragem: alinhada ao terreno
     const baseMat = m4.scale(
-      m4.translate(m4.identity(), [x - 0.9, 0, z - 0.9]),
+      m4.translate(m4.identity(), [x - 0.9, terrainY, z - 0.9]),
       [1.8, 0.5, 1.8]
     );
     objs.push({ bufferInfo: _boxBuf, material: _matMetal, modelMat: baseMat });
 
     // Torre principal
     const towerMat = m4.scale(
-      m4.translate(m4.identity(), [x - towerW/2, 0.5, z - towerW/2]),
+      m4.translate(m4.identity(), [x - towerW/2, terrainY + 0.5, z - towerW/2]),
       [towerW, towerH, towerW]
     );
     objs.push({ bufferInfo: _boxBuf, material: _matMetal, modelMat: towerMat });
@@ -108,13 +108,13 @@ const Antenna = (() => {
 
     for (const hy of hasteYs) {
       const hxMat = m4.scale(
-        m4.translate(m4.identity(), [x - hasteLen/2, 0.5 + hy, z - hasteW/2]),
+        m4.translate(m4.identity(), [x - hasteLen/2, terrainY + 0.5 + hy, z - hasteW/2]),
         [hasteLen, hasteW, hasteW]
       );
       objs.push({ bufferInfo: _boxBuf, material: _matMetal, modelMat: hxMat });
 
       const hzMat = m4.scale(
-        m4.translate(m4.identity(), [x - hasteW/2, 0.5 + hy + hasteW + 0.1, z - hasteLen/2]),
+        m4.translate(m4.identity(), [x - hasteW/2, terrainY + 0.5 + hy + hasteW + 0.1, z - hasteLen/2]),
         [hasteW, hasteW, hasteLen]
       );
       objs.push({ bufferInfo: _boxBuf, material: _matMetal, modelMat: hzMat });
@@ -122,7 +122,7 @@ const Antenna = (() => {
 
     // Ponta: cilindro fino de 5 unidades no topo da torre
     const tipMat = m4.scale(
-      m4.translate(m4.identity(), [x, 0.5 + towerH, z]),
+      m4.translate(m4.identity(), [x, terrainY + 0.5 + towerH, z]),
       [1, 5.0, 1]
     );
     objs.push({ bufferInfo: _tipBuf, material: _matMetal, modelMat: tipMat });

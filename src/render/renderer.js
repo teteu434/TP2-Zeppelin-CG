@@ -83,7 +83,12 @@ const Renderer = (() => {
     u_useTexture:     useTexture,
     u_texture:        resolvedTexture,
     ...lightUniforms,
-    ...fogUniforms,   // <-- adiciona os 4 uniforms de fog
+    ...fogUniforms,
+    // Tinting de altitude: ativo apenas no objeto de terreno (heightTint:true).
+    // Verde vívido (#80D247 ≈ [0.50, 0.82, 0.28]) blendado até 55% nos picos.
+    u_heightTint:      !!renderObject.heightTint,
+    u_heightMax:       10.0,
+    u_heightTintColor: [0.50, 0.82, 0.28],
   };
 
     twgl.setUniforms(prog, uniforms);

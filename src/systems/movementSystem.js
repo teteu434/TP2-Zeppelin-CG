@@ -20,8 +20,9 @@
 
 const MovementSystem = (() => {
 
-  // Retorna a altura máxima do terreno sólido em (px, pz) considerando
-  // o corpo do prédio E o topo decorativo (pirâmide ou caixa)
+  // Retorna a altura máxima do sólido sob (px, pz) em espaço de mundo.
+  // Usa b.terrainY para converter a altura local do objeto para espaço de mundo.
+  // Se terrainY não está definido, assume 0 (compatibilidade com dados antigos).
   function _getMaxHeightAt(px, pz, bounds) {
     const MARGIN = 6.0;
     let maxH = 0;
@@ -31,8 +32,10 @@ const MovementSystem = (() => {
       const inZ = pz > b.minZ - MARGIN && pz < b.maxZ + MARGIN;
       if (!inX || !inZ) continue;
 
-      // Altura do corpo do prédio é sempre válida se está na área
-      maxH = Math.max(maxH, b.bodyHeight);
+      const by = b.terrainY || 0;  // base do objeto no mundo
+
+      // Altura do corpo — convertida para espaço de mundo
+      maxH = Math.max(maxH, by + b.bodyHeight);
 
       // ── Pirâmide (brick) ────────────────────────────────────
       if (b.topScale > 0) {
@@ -42,14 +45,13 @@ const MovementSystem = (() => {
         const pyMaxZ = b.minZ + b.topOffsetZ + b.topScale + MARGIN;
 
         if (px > pyMinX && px < pyMaxX && pz > pyMinZ && pz < pyMaxZ) {
-          // Distância normalizada ao centro da pirâmide (0=centro, 1=borda)
           const cx = (b.minX + b.topOffsetX + b.topScale / 2);
           const cz = (b.minZ + b.topOffsetZ + b.topScale / 2);
           const dx = Math.abs(px - cx) / (b.topScale / 2 + MARGIN);
           const dz = Math.abs(pz - cz) / (b.topScale / 2 + MARGIN);
-          const t  = Math.max(dx, dz);          // 0 no topo, 1 na base
-          const pyH = b.topScale * 0.5;         // altura da pirâmide
-          const heightAtPoint = b.bodyHeight + pyH * Math.max(0, 1 - t);
+          const t  = Math.max(dx, dz);
+          const pyH = b.topScale * 0.5;
+          const heightAtPoint = by + b.bodyHeight + pyH * Math.max(0, 1 - t);
           maxH = Math.max(maxH, heightAtPoint);
         }
       }
@@ -58,7 +60,7 @@ const MovementSystem = (() => {
       if (b.covH > 0) {
         if (px > b.covMinX - MARGIN && px < b.covMaxX + MARGIN &&
             pz > b.covMinZ - MARGIN && pz < b.covMaxZ + MARGIN) {
-          maxH = Math.max(maxH, b.bodyHeight + b.covH);
+          maxH = Math.max(maxH, by + b.bodyHeight + b.covH);
         }
       }
     }
@@ -104,8 +106,9 @@ const MovementSystem = (() => {
     let blockedZ = false;
 
     for (const b of bounds) {
-      // Altura total real do prédio incluindo topo decorativo
-      const fullH = b.bodyHeight + Math.max(b.topScale * 0.5, b.covH);
+      // Altura real do topo no espaço de mundo (terrainY + altura local)
+      const by    = b.terrainY || 0;
+      const fullH = by + b.bodyHeight + Math.max(b.topScale * 0.5, b.covH);
       if (newY >= fullH + MARGIN) continue;
 
       const inX_new = newX > b.minX - MARGIN && newX < b.maxX + MARGIN;
@@ -122,10 +125,13 @@ const MovementSystem = (() => {
     const resolvedX = blockedX ? ac.position[0] : newX;
     const resolvedZ = blockedZ ? ac.position[2] : newZ;
 
-    // ── Colisão vertical (impede descer dentro de prédios/telhados) ──
-    // Calcula a altura do sólido mais alto sob a nave na posição resolvida
+    // ── Colisão vertical — terreno + sólidos ─────────────────────
+    // terrainFloor: altura do terreno na posição resolvida (pode ser > 0 com height map)
+    // floorHere:    altura do sólido mais alto sob a nave (edifícios, árvores, etc.)
+    // minAllowedY:  máximo entre (terreno + MIN_HEIGHT) e (topo do sólido + MARGIN)
+    const terrainFloor = HeightMap.getHeight(resolvedX, resolvedZ);
     const floorHere    = _getMaxHeightAt(resolvedX, resolvedZ, bounds);
-    const minAllowedY  = Math.max(C.MIN_HEIGHT, floorHere + MARGIN);
+    const minAllowedY  = Math.max(terrainFloor + C.MIN_HEIGHT, floorHere + MARGIN);
     const resolvedY    = Math.max(newY, minAllowedY);
 
     ac.position[0] = resolvedX;

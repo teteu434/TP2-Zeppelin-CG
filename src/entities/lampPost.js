@@ -121,9 +121,9 @@ const LampPost = (() => {
     };
   }
 
-  // config = { x, z }
+  // config = { x, z, terrainY }
   function getRenderObjects(config) {
-    const { x, z } = config;
+    const { x, z, terrainY = 0 } = config;
     const m4   = twgl.m4;
     const objs = [];
 
@@ -131,22 +131,22 @@ const LampPost = (() => {
     const armLen   = 2.2;
     const armThick = 0.25;
 
-    // Fuste: cilindro escalonado para altura 12
+    // Fuste: base alinhada ao terreno
     const shaftMat = m4.scale(
-      m4.translate(m4.identity(), [x, 0, z]),
+      m4.translate(m4.identity(), [x, terrainY, z]),
       [1, shaftH, 1]
     );
     objs.push({ bufferInfo: _shaftBuf, material: _matMetal, modelMat: shaftMat });
 
     // Braço horizontal: caixa fina saindo do topo
     const armMat = m4.scale(
-      m4.translate(m4.identity(), [x, shaftH - armThick * 0.5, z - armThick * 0.5]),
+      m4.translate(m4.identity(), [x, terrainY + shaftH - armThick * 0.5, z - armThick * 0.5]),
       [armLen, armThick, armThick]
     );
     objs.push({ bufferInfo: _armBuf, material: _matMetal, modelMat: armMat });
 
     // Luminária: esfera na ponta do braço
-    const lampMat = m4.translate(m4.identity(), [x + armLen, shaftH + 0.1, z]);
+    const lampMat = m4.translate(m4.identity(), [x + armLen, terrainY + shaftH + 0.1, z]);
     objs.push({ bufferInfo: _lampBuf, material: _matLamp, modelMat: lampMat });
 
     return objs;

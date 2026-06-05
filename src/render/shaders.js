@@ -112,6 +112,19 @@ const mainFS = `
   uniform float u_fogFar;
   uniform vec4  u_fogColor;
 
+  // ── Uniforms de tinting por altitude (somente terreno) ───
+  // u_heightTint:      ativa o efeito — true somente para a malha do chão
+  // u_heightMax:       altura máxima do terreno (10 unidades)
+  // u_heightTintColor: cor que aparece nos pontos mais altos (verde claro)
+  //
+  // Fórmula: t = smoothstep(worldY / heightMax)
+  //           cor = mix(baseColor, tintColor, t * 0.55)
+  // Resultado: partes baixas → cor da textura de grama original
+  //            partes altas  → gradiente para verde mais claro/vívido
+  uniform bool  u_heightTint;
+  uniform float u_heightMax;
+  uniform vec3  u_heightTintColor;
+
   void main() {
     // ── Cor base: textura ou material sólido ────────────────
     vec4 baseColor;
@@ -119,6 +132,16 @@ const mainFS = `
       baseColor = texture2D(u_texture, v_texcoord);
     } else {
       baseColor = vec4(u_matDiffuse, u_matAlpha);
+    }
+
+    // ── Tinting de altitude (visualização de relevo) ─────────
+    // Aplicado ANTES da iluminação para que o gradiente de cor
+    // seja afetado normalmente pela luz (realista).
+    // smoothstep garante transição suave sem banda abrupta.
+    if (u_heightTint && u_heightMax > 0.0) {
+      float t = clamp(v_worldPos.y / u_heightMax, 0.0, 1.0);
+      t = t * t * (3.0 - 2.0 * t);  // smoothstep manual
+      baseColor.rgb = mix(baseColor.rgb, u_heightTintColor, t * 0.55);
     }
 
     // ── Iluminação Phong (idêntica ao original) ─────────────

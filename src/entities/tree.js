@@ -85,22 +85,22 @@ const Tree = (() => {
     _matLeave = { ...Material.PRESETS.leaves };
   }
 
-  // config = { x, z, trunkHeight, crownRadius, crownHeight }
+  // config = { x, z, trunkHeight, crownRadius, crownHeight, terrainY }
   function getRenderObjects(config) {
-    const { x, z, trunkHeight = 4, crownRadius = 2.5, crownHeight = 5 } = config;
+    const { x, z, trunkHeight = 4, crownRadius = 2.5, crownHeight = 5, terrainY = 0 } = config;
     const m4 = twgl.m4;
     const objs = [];
 
-    // Tronco
+    // Tronco — base alinhada ao terreno
     const trunkMat = m4.scale(
-      m4.translate(m4.identity(), [x, 0, z]),
+      m4.translate(m4.identity(), [x, terrainY, z]),
       [1, trunkHeight, 1]
     );
     objs.push({ bufferInfo: _trunkBuf, material: _matTrunk, modelMat: trunkMat });
 
     // Copa (cone na ponta do tronco)
     const crownMat = m4.scale(
-      m4.translate(m4.identity(), [x, trunkHeight, z]),
+      m4.translate(m4.identity(), [x, terrainY + trunkHeight, z]),
       [crownRadius, crownHeight, crownRadius]
     );
     objs.push({ bufferInfo: _leaveBuf, material: _matLeave, modelMat: crownMat });

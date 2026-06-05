@@ -113,8 +113,13 @@ const CityGenerator = (() => {
     const x = cx + ox - width / 2;
     const z = cz + oz - depth / 2;
 
+    if (_overlapsExisting(x, x + width, z, z + depth)) return;
+
+    // Consulta a altura do terreno no centro do prédio
+    const terrainY = HeightMap.getHeight(cx + ox, cz + oz);
+
     const objs = Building.getRenderObjects(
-      { x, z, width, depth, height, type },
+      { x, z, width, depth, height, type, terrainY },
       textures
     );
 
@@ -134,6 +139,7 @@ const CityGenerator = (() => {
       minX: x,  maxX: x + width,
       minZ: z,  maxZ: z + depth,
       bodyHeight: height,
+      terrainY:   terrainY,
       type: type,
       // dados do topo para cálculo de altura dinâmica
       topScale:   (type === 'brick' && height > 15) ? Math.min(width, depth) * 0.8 : 0,
@@ -158,8 +164,23 @@ const CityGenerator = (() => {
       const crownR  = MathUtils.randRange(rng, 1.8, 3.5);
       const crownH  = MathUtils.randRange(rng, 4, 8);
 
-      const objs = Tree.getRenderObjects({ x, z, trunkHeight: trunkH, crownRadius: crownR, crownHeight: crownH });
+      if (_overlapsExisting(x - crownR, x + crownR, z - crownR, z + crownR)) continue;
+
+      const terrainY = HeightMap.getHeight(x, z);
+
+      const objs = Tree.getRenderObjects({ x, z, trunkHeight: trunkH, crownRadius: crownR, crownHeight: crownH, terrainY });
       _treeObjs.push(...objs);
+
+      // Colisor da árvore: caixa quadrada com metade do lado = crownR
+      _buildingBounds.push({
+        minX: x - crownR, maxX: x + crownR,
+        minZ: z - crownR, maxZ: z + crownR,
+        bodyHeight: trunkH + crownH,
+        terrainY:   terrainY,
+        type: 'tree',
+        topScale: 0, topOffsetX: 0, topOffsetZ: 0,
+        covH: 0, covMinX: 0, covMaxX: 0, covMinZ: 0, covMaxZ: 0,
+      });
     }
   }
 
@@ -168,8 +189,23 @@ const CityGenerator = (() => {
     const half = spacing * 0.3;
     const x = cx + MathUtils.randRange(rng, -half, half);
     const z = cz + MathUtils.randRange(rng, -half, half);
-    const objs = LampPost.getRenderObjects({ x, z });
+
+    if (_overlapsExisting(x - 0.5, x + 0.5, z - 0.5, z + 0.5)) return;
+
+    const terrainY = HeightMap.getHeight(x, z);
+    const objs = LampPost.getRenderObjects({ x, z, terrainY });
     _lampPostObjs.push(...objs);
+
+    // Colisor do poste: caixa pequena ao redor do fuste (raio efetivo 0.5u)
+    _buildingBounds.push({
+      minX: x - 0.5, maxX: x + 0.5,
+      minZ: z - 0.5, maxZ: z + 0.5,
+      bodyHeight: 13.0,
+      terrainY:   terrainY,
+      type: 'lamp',
+      topScale: 0, topOffsetX: 0, topOffsetZ: 0,
+      covH: 0, covMinX: 0, covMaxX: 0, covMinZ: 0, covMaxZ: 0,
+    });
   }
 
   function _spawnWaterTower(rng, cx, cz, spacing) {
@@ -177,13 +213,18 @@ const CityGenerator = (() => {
     const half = spacing * 0.22;
     const x = cx + MathUtils.randRange(rng, -half, half);
     const z = cz + MathUtils.randRange(rng, -half, half);
-    const objs = WaterTower.getRenderObjects({ x, z });
+
+    if (_overlapsExisting(x - 2.8, x + 2.8, z - 2.8, z + 2.8)) return;
+
+    const terrainY = HeightMap.getHeight(x, z);
+    const objs = WaterTower.getRenderObjects({ x, z, terrainY });
     _waterTowerObjs.push(...objs);
 
     _buildingBounds.push({
       minX: x - 2.8, maxX: x + 2.8,
       minZ: z - 2.8, maxZ: z + 2.8,
       bodyHeight: 13.3,
+      terrainY:   terrainY,
       type: 'concrete',
       topScale: 0, topOffsetX: 0, topOffsetZ: 0,
       covH: 0, covMinX: 0, covMaxX: 0, covMinZ: 0, covMaxZ: 0,
@@ -195,13 +236,18 @@ const CityGenerator = (() => {
     const half = spacing * 0.22;
     const x = cx + MathUtils.randRange(rng, -half, half);
     const z = cz + MathUtils.randRange(rng, -half, half);
-    const objs = Antenna.getRenderObjects({ x, z });
+
+    if (_overlapsExisting(x - 1.0, x + 1.0, z - 1.0, z + 1.0)) return;
+
+    const terrainY = HeightMap.getHeight(x, z);
+    const objs = Antenna.getRenderObjects({ x, z, terrainY });
     _antennaObjs.push(...objs);
 
     _buildingBounds.push({
       minX: x - 1.0, maxX: x + 1.0,
       minZ: z - 1.0, maxZ: z + 1.0,
       bodyHeight: 26.0,
+      terrainY:   terrainY,
       type: 'concrete',
       topScale: 0, topOffsetX: 0, topOffsetZ: 0,
       covH: 0, covMinX: 0, covMaxX: 0, covMinZ: 0, covMaxZ: 0,
@@ -215,8 +261,36 @@ const CityGenerator = (() => {
     const z      = cz + MathUtils.randRange(rng, -half, half);
     const length = MathUtils.randRange(rng, 8.0, 16.0);
     const useBrick = rng() < 0.5;
-    const objs = UrbanWall.getRenderObjects({ x, z, length, useBrick });
+
+    if (_overlapsExisting(x - length / 2, x + length / 2, z - 0.3, z + 0.3)) return;
+
+    const terrainY = HeightMap.getHeight(x, z);
+    const objs = UrbanWall.getRenderObjects({ x, z, length, useBrick, terrainY });
     _wallObjs.push(...objs);
+
+    // Colisor do muro: caixa que cobre o comprimento real (espessura=0.6)
+    _buildingBounds.push({
+      minX: x - length / 2, maxX: x + length / 2,
+      minZ: z - 0.3,        maxZ: z + 0.3,
+      bodyHeight: 2.5,
+      terrainY:   terrainY,
+      type: 'wall',
+      topScale: 0, topOffsetX: 0, topOffsetZ: 0,
+      covH: 0, covMinX: 0, covMaxX: 0, covMinZ: 0, covMaxZ: 0,
+    });
+  }
+
+  // Retorna true se o retângulo (minX..maxX, minZ..maxZ) + padding
+  // sobrepõe qualquer bound já registrado. Evita entidades sobrepostas.
+  function _overlapsExisting(minX, maxX, minZ, maxZ) {
+    const PAD = 1.5;
+    for (const b of _buildingBounds) {
+      if (minX - PAD < b.maxX && maxX + PAD > b.minX &&
+          minZ - PAD < b.maxZ && maxZ + PAD > b.minZ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function getBuildingObjects()   { return _buildingObjs;   }

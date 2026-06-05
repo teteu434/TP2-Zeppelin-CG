@@ -51,10 +51,10 @@ const UrbanWall = (() => {
     }
   }
 
-  // config = { x, z, length, useBrick }
+  // config = { x, z, length, useBrick, terrainY }
   // length: comprimento do muro (8–18). Espessura 0.6, altura 2.5.
   function getRenderObjects(config) {
-    const { x, z, length = 10.0, useBrick = false } = config;
+    const { x, z, length = 10.0, useBrick = false, terrainY = 0 } = config;
     const m4  = twgl.m4;
 
     const height    = 2.5;
@@ -62,7 +62,7 @@ const UrbanWall = (() => {
     const mat       = useBrick ? _matBrick : _matConcrete;
 
     const wallMat = m4.scale(
-      m4.translate(m4.identity(), [x - length/2, 0, z - thickness/2]),
+      m4.translate(m4.identity(), [x - length/2, terrainY, z - thickness/2]),
       [length, height, thickness]
     );
 

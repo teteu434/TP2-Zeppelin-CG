@@ -95,9 +95,9 @@ const WaterTower = (() => {
     }
   }
 
-  // config = { x, z }
+  // config = { x, z, terrainY }
   function getRenderObjects(config) {
-    const { x, z } = config;
+    const { x, z, terrainY = 0 } = config;
     const m4   = twgl.m4;
     const objs = [];
 
@@ -105,7 +105,7 @@ const WaterTower = (() => {
     const tankY  = legH;
     const spread = 1.6;
 
-    // 4 pernas em quadrado
+    // 4 pernas em quadrado — bases alinhadas ao terreno
     const legOffsets = [
       [ spread,  spread],
       [-spread,  spread],
@@ -114,18 +114,18 @@ const WaterTower = (() => {
     ];
     for (const [ox, oz] of legOffsets) {
       const legMat = m4.scale(
-        m4.translate(m4.identity(), [x + ox, 0, z + oz]),
+        m4.translate(m4.identity(), [x + ox, terrainY, z + oz]),
         [1, legH, 1]
       );
       objs.push({ bufferInfo: _legBuf, material: _matLeg, modelMat: legMat });
     }
 
     // Tanque cilíndrico
-    const tankMat = m4.translate(m4.identity(), [x, tankY, z]);
+    const tankMat = m4.translate(m4.identity(), [x, terrainY + tankY, z]);
     objs.push({ bufferInfo: _tankBuf, material: _matTank, modelMat: tankMat });
 
     // Tampa cônica
-    const coneMat = m4.translate(m4.identity(), [x, tankY + 3.2, z]);
+    const coneMat = m4.translate(m4.identity(), [x, terrainY + tankY + 3.2, z]);
     objs.push({ bufferInfo: _coneBuf, material: _matLeg, modelMat: coneMat });
 
     return objs;

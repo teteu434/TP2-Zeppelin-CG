@@ -22,7 +22,7 @@ const SoundManager = (() => {
 
     try {
       // ── HTMLAudioElement ──────────────────────────────────────
-      _audio = new Audio("../../public/audio/elevatorMusic.mp3");
+      _audio = new Audio("public/audio/elevatorMusic.mp3");
       _audio.loop = true;       // Loop contínuo
       _audio.volume = 1.0;      // Volume controlado pelo GainNode
 

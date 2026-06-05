@@ -102,7 +102,7 @@ const Building = (() => {
   // ── Gera render objects de um prédio ──────────────────────────
   // config = { x, z, width, depth, height, type, textureKey }
   function getRenderObjects(config, textures, texturePool) {
-    const { x, z, width, depth, height, type } = config;
+    const { x, z, width, depth, height, type, terrainY = 0 } = config;
     const objs = [];
     const m4   = twgl.m4;
 
@@ -127,9 +127,9 @@ const Building = (() => {
 
     // ── Corpo do prédio (caixa escalada) ──────────────────────
     // A caixa unitária é escalada para [width, height, depth]
-    // e transladada para (x, 0, z)
+    // e transladada para (x, terrainY, z) — base alinhada ao terreno.
     const bodyMat = m4.scale(
-      m4.translate(m4.identity(), [x, 0, z]),
+      m4.translate(m4.identity(), [x, terrainY, z]),
       [width, height, depth]
     );
     objs.push({ bufferInfo: _boxBuf, material: baseMat, modelMat: bodyMat });
@@ -140,7 +140,7 @@ const Building = (() => {
       const topScale  = Math.min(width, depth) * 0.8;
       const topOffset = [(width - topScale) / 2, 0, (depth - topScale) / 2];
       const topMat = m4.scale(
-        m4.translate(m4.identity(), [x + topOffset[0], height, z + topOffset[2]]),
+        m4.translate(m4.identity(), [x + topOffset[0], terrainY + height, z + topOffset[2]]),
         [topScale, topScale * 0.5, topScale]
       );
       objs.push({ bufferInfo: _pyramidBuf, material: baseMat, modelMat: topMat });
@@ -150,7 +150,7 @@ const Building = (() => {
       // Caixa de cobertura (casa de máquinas)
       const covW = width * 0.3, covD = depth * 0.3, covH = height * 0.08;
       const covMat = m4.scale(
-        m4.translate(m4.identity(), [x + width*0.35, height, z + depth*0.35]),
+        m4.translate(m4.identity(), [x + width*0.35, terrainY + height, z + depth*0.35]),
         [covW, covH, covD]
       );
       const concMat = { ...Material.PRESETS.concrete };
