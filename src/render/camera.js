@@ -51,8 +51,8 @@ const Camera = (() => {
 
     // Offset angular por modo de câmera
     const angleOffsets = {
-      'back':  0,           // Atrás do avião
-      'front': Math.PI,     // Frente
+      'back':  Math.PI,           // Atrás do avião
+      'front': 0,     // Frente
       'right': Math.PI / 2,
       'left':  -Math.PI / 2,
     };
